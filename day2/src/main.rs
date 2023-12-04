@@ -34,6 +34,19 @@ struct Set {
     blue: usize,
 }
 
+impl Set {
+    fn power(&self) -> usize {
+        self.red.max(1) * self.green.max(1) * self.blue.max(1)
+    }
+    fn one() -> Self {
+        Self {
+            red: 1,
+            green: 1,
+            blue: 1,
+        }
+    }
+}
+
 impl TryFrom<&str> for Set {
     type Error = anyhow::Error;
 
@@ -116,6 +129,26 @@ fn part_one(games: &Vec<Game>) {
     println!("{sum}");
 }
 
+fn part_two(games: &Vec<Game>)  {
+    let sum: usize = games.iter()
+        .map(|game| {
+            game.sets.iter()
+                .fold(Set::one(), |mut acc, set| {
+                    if set.red > 0 {
+                        acc.red = acc.red.max(set.red);
+                    }
+                    if set.green > 0 {
+                        acc.green = acc.green.max(set.green);
+                    }
+                    if set.blue > 0 {
+                        acc.blue = acc.blue.max(set.blue);
+                    }
+                    acc
+                }).power()
+        }).sum();
+    println!("{sum}");
+}
+
 fn main() -> Result<()> {
     let file = OpenOptions::new().read(true).open("./input")?;
     let games: Vec<_> = BufReader::new(file)
@@ -123,5 +156,6 @@ fn main() -> Result<()> {
         .map(|maybe_line|Game::try_from(maybe_line?.as_str()))
         .collect::<Result<_>>()?;
     part_one(&games);
+    part_two(&games);
     Ok(())
 }
