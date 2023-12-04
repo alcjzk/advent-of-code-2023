@@ -29,21 +29,14 @@ impl TryFrom<&str> for Color {
 
 #[derive(Debug, Default)]
 struct Set {
-    red: usize,
-    green: usize,
-    blue: usize,
+    red: Option<usize>,
+    green: Option<usize>,
+    blue: Option<usize>,
 }
 
 impl Set {
     fn power(&self) -> usize {
-        self.red.max(1) * self.green.max(1) * self.blue.max(1)
-    }
-    fn one() -> Self {
-        Self {
-            red: 1,
-            green: 1,
-            blue: 1,
-        }
+        [self.red, self.green, self.blue].iter().flatten().product()
     }
 }
 
@@ -64,9 +57,9 @@ impl TryFrom<&str> for Set {
                 |mut acc, values: Result<_, anyhow::Error>| {
                     let (count, color) = values?;
                     match color {
-                        Color::Red => acc.red = count,
-                        Color::Green => acc.green = count,
-                        Color::Blue => acc.blue = count,
+                        Color::Red => acc.red = Some(count),
+                        Color::Green => acc.green = Some(count),
+                        Color::Blue => acc.blue = Some(count),
                     }
                     Ok(acc)
                 },
@@ -103,23 +96,27 @@ impl TryFrom<&str> for Game {
 }
 
 impl Game {
+    #[rustfmt::skip] // fmt formats below match badly
     fn is_possible(&self) -> bool {
-        let max = self.sets.iter().fold(Set::default(), |mut acc, set| {
+        let max_set = self.sets.iter().fold(Set::default(), |mut acc, set| {
             acc.red = acc.red.max(set.red);
             acc.green = acc.green.max(set.green);
             acc.blue = acc.blue.max(set.blue);
             acc
         });
-        if max.red <= MAX_RED && max.green <= MAX_GREEN && max.blue <= MAX_BLUE {
-            return true;
+        match max_set {
+            Set { red: Some(red), .. } if red > MAX_RED => false,
+            Set { green: Some(green), .. } if green > MAX_GREEN => false,
+            Set { blue: Some(blue), .. } if blue > MAX_BLUE => false,
+            _ => true,
         }
-        false
     }
 }
 
 fn part_one(games: &Vec<Game>) {
-    let sum: usize = games.iter()
-        .filter_map(|game|{
+    let sum: usize = games
+        .iter()
+        .filter_map(|game| {
             if game.is_possible() {
                 return Some(game.id);
             }
@@ -129,23 +126,21 @@ fn part_one(games: &Vec<Game>) {
     println!("{sum}");
 }
 
-fn part_two(games: &Vec<Game>)  {
-    let sum: usize = games.iter()
+fn part_two(games: &Vec<Game>) {
+    let sum: usize = games
+        .iter()
         .map(|game| {
-            game.sets.iter()
-                .fold(Set::one(), |mut acc, set| {
-                    if set.red > 0 {
-                        acc.red = acc.red.max(set.red);
-                    }
-                    if set.green > 0 {
-                        acc.green = acc.green.max(set.green);
-                    }
-                    if set.blue > 0 {
-                        acc.blue = acc.blue.max(set.blue);
-                    }
+            game.sets
+                .iter()
+                .fold(Set::default(), |mut acc, set| {
+                    acc.red = acc.red.max(set.red);
+                    acc.green = acc.green.max(set.green);
+                    acc.blue = acc.blue.max(set.blue);
                     acc
-                }).power()
-        }).sum();
+                })
+                .power()
+        })
+        .sum();
     println!("{sum}");
 }
 
@@ -153,7 +148,7 @@ fn main() -> Result<()> {
     let file = OpenOptions::new().read(true).open("./input")?;
     let games: Vec<_> = BufReader::new(file)
         .lines()
-        .map(|maybe_line|Game::try_from(maybe_line?.as_str()))
+        .map(|maybe_line| Game::try_from(maybe_line?.as_str()))
         .collect::<Result<_>>()?;
     part_one(&games);
     part_two(&games);
