@@ -61,6 +61,7 @@ impl TryFrom<&str> for Set {
     }
 }
 
+#[derive(Debug)]
 struct Game {
     id: usize,
     sets: Vec<Set>,
@@ -103,21 +104,24 @@ impl Game {
     }
 }
 
-fn main() -> Result<()> {
-    let file = OpenOptions::new().read(true).open("./input")?;
-    let sum: usize = BufReader::new(file)
-        .lines()
-        .filter_map(
-            |maybe_line| match Game::try_from(maybe_line.unwrap().as_str()) {
-                Ok(game) if game.is_possible() => Some(game.id),
-                Ok(_) => None,
-                Err(error) => {
-                    eprint!("{error:?}");
-                    None
-                }
-            },
-        )
+fn part_one(games: &Vec<Game>) {
+    let sum: usize = games.iter()
+        .filter_map(|game|{
+            if game.is_possible() {
+                return Some(game.id);
+            }
+            None
+        })
         .sum();
     println!("{sum}");
+}
+
+fn main() -> Result<()> {
+    let file = OpenOptions::new().read(true).open("./input")?;
+    let games: Vec<_> = BufReader::new(file)
+        .lines()
+        .map(|maybe_line|Game::try_from(maybe_line?.as_str()))
+        .collect::<Result<_>>()?;
+    part_one(&games);
     Ok(())
 }
