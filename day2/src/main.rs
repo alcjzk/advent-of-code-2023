@@ -94,7 +94,7 @@ impl TryFrom<&str> for Game {
             .next()
             .ok_or(anyhow!("Missing sets"))?
             .split(';')
-            .map(|field| Set::try_from(field))
+            .map(Set::try_from)
             .collect::<Result<Vec<_>>>()?;
         Ok(Self { id, sets })
     }
@@ -118,7 +118,7 @@ impl Game {
     }
 }
 
-fn part_one(games: &Vec<Game>) {
+fn part_one(games: &[Game]) {
     let sum: usize = games
         .iter()
         .filter_map(|game| {
@@ -131,7 +131,7 @@ fn part_one(games: &Vec<Game>) {
     println!("{sum}");
 }
 
-fn part_two(games: &Vec<Game>) {
+fn part_two(games: &[Game]) {
     let sum: usize = games
         .iter()
         .map(|game| {
