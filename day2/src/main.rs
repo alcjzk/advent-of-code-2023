@@ -1,6 +1,7 @@
 use anyhow::{anyhow, bail, Result};
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
+use std::num::NonZeroUsize;
 
 const MAX_RED: usize = 12;
 const MAX_GREEN: usize = 13;
@@ -29,14 +30,18 @@ impl TryFrom<&str> for Color {
 
 #[derive(Debug, Default)]
 struct Set {
-    red: Option<usize>,
-    green: Option<usize>,
-    blue: Option<usize>,
+    red: Option<NonZeroUsize>,
+    green: Option<NonZeroUsize>,
+    blue: Option<NonZeroUsize>,
 }
 
 impl Set {
     fn power(&self) -> usize {
-        [self.red, self.green, self.blue].iter().flatten().product()
+        [self.red, self.green, self.blue]
+            .into_iter()
+            .flatten()
+            .map(|value| value.get())
+            .product()
     }
 }
 
@@ -57,9 +62,9 @@ impl TryFrom<&str> for Set {
                 |mut acc, values: Result<_, anyhow::Error>| {
                     let (count, color) = values?;
                     match color {
-                        Color::Red => acc.red = Some(count),
-                        Color::Green => acc.green = Some(count),
-                        Color::Blue => acc.blue = Some(count),
+                        Color::Red => acc.red = Some(count.try_into()?),
+                        Color::Green => acc.green = Some(count.try_into()?),
+                        Color::Blue => acc.blue = Some(count.try_into()?),
                     }
                     Ok(acc)
                 },
@@ -105,9 +110,9 @@ impl Game {
             acc
         });
         match max_set {
-            Set { red: Some(red), .. } if red > MAX_RED => false,
-            Set { green: Some(green), .. } if green > MAX_GREEN => false,
-            Set { blue: Some(blue), .. } if blue > MAX_BLUE => false,
+            Set { red: Some(red), .. } if red.get() > MAX_RED => false,
+            Set { green: Some(green), .. } if green.get() > MAX_GREEN => false,
+            Set { blue: Some(blue), .. } if blue.get() > MAX_BLUE => false,
             _ => true,
         }
     }
