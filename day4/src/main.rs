@@ -11,24 +11,11 @@ fn part_one(cards: &[Card]) {
     println!("{sum}");
 }
 
-fn won_cards<'a, T>(cards: T, original: &'a [Card]) -> Vec<&'a Card>
-where
-    T: IntoIterator<Item = &'a Card> + 'a,
-{
-    cards
-        .into_iter()
-        .flat_map(|card| card.won_cards(original))
-        .collect()
-}
-
 fn part_two(cards: &[Card]) {
-    let mut count = cards.len();
-
-    let mut next: Vec<&Card> = won_cards(cards, cards);
-    while !next.is_empty() {
-        count += next.len();
-        next = won_cards(next, cards);
-    }
+    let count = cards
+        .iter()
+        .map(|card| card.cards_worth(cards))
+        .sum::<usize>();
 
     println!("{count}");
 }

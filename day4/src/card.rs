@@ -1,10 +1,12 @@
 use anyhow::{anyhow, Error, Result};
+use std::cell::Cell;
 
 #[derive(Debug)]
 pub struct Card {
     id: usize,
     winning_numbers: Vec<usize>,
     numbers: Vec<usize>,
+    won_cards_count: Cell<Option<usize>>,
 }
 
 impl Card {
@@ -32,6 +34,24 @@ impl Card {
             }
         }
         Vec::new()
+    }
+    pub fn cards_worth(&self, cards: &[Card]) -> usize {
+        if let Some(count) = self.won_cards_count.get() {
+            return count;
+        }
+        let won_cards = self.won_cards(cards);
+        let count = match won_cards.len() {
+            0 => 1,
+            _ => {
+                won_cards
+                    .iter()
+                    .map(|card| card.cards_worth(cards))
+                    .sum::<usize>()
+                    + 1
+            }
+        };
+        self.won_cards_count.set(Some(count));
+        count
     }
 }
 
@@ -68,6 +88,7 @@ impl TryFrom<(usize, String)> for Card {
             id,
             winning_numbers,
             numbers,
+            won_cards_count: Cell::default(),
         })
     }
 }
