@@ -2,26 +2,42 @@ use anyhow::{anyhow, Result, Error};
 
 #[derive(Debug)]
 pub struct Card {
+    id: usize,
     winning_numbers: Vec<usize>,
     numbers: Vec<usize>,
 }
 
 impl Card {
-    pub fn points(&self) -> usize {
-        let count = self.numbers.iter()
+    pub fn matches(&self) -> usize {
+        self.numbers.iter()
             .filter(|number| self.winning_numbers.contains(number))
-            .count();
-        if count > 0 {
-            return 2usize.pow((count - 1) as u32);
+            .count()
+    }
+    pub fn points(&self) -> usize {
+        let matches = self.matches();
+        if matches > 0 {
+            return 2usize.pow((matches - 1) as u32);
         }
         0
     }
+    pub fn won_cards<'a>(&self, cards: &'a [Card]) -> Vec<&'a Card> {
+        let matches = self.matches();
+
+        for count in (1..=matches).rev() {
+            let start = self.id + 1;
+            let end = start + count;
+            if let Some(won_cards) = cards.get(start..end) {
+                return won_cards.iter().collect();
+            }
+        }
+        Vec::new( )
+    }
 }
 
-impl TryFrom<String> for Card {
+impl TryFrom<(usize, String)> for Card {
     type Error = Error;
 
-    fn try_from(line: String) -> Result<Self> {
+    fn try_from(value: (usize, String)) -> Result<Self> {
         fn _numbers(string: &str) -> Result<Vec<usize>> {
             Ok(string.split_ascii_whitespace()
                 .into_iter()
@@ -29,6 +45,7 @@ impl TryFrom<String> for Card {
                 .collect::<Result<_>>()?)
         }
 
+        let (id, line) = value;
         let values = line.split(':')
             .nth(1)
             .ok_or(anyhow!("Invalid card format '{line}'"))?;
@@ -40,6 +57,7 @@ impl TryFrom<String> for Card {
             .ok_or(anyhow!("Invalid card format '{line}'"))?)?;
         
         Ok(Card {
+            id,
             winning_numbers,
             numbers,
         })
