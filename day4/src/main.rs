@@ -1,4 +1,3 @@
-#![allow(unused)]
 mod card;
 
 use std::fs::OpenOptions;
