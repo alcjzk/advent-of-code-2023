@@ -1,26 +1,24 @@
 mod card;
 
-use std::fs::OpenOptions;
-use std::io::{BufReader, BufRead};
 use anyhow::Result;
 use card::Card;
+use std::fs::OpenOptions;
+use std::io::{BufRead, BufReader};
 
 fn part_one(cards: &[Card]) {
-    let sum: usize = cards.iter()
-        .map(|card|card.points())
-        .sum();
+    let sum: usize = cards.iter().map(|card| card.points()).sum();
 
     println!("{sum}");
 }
 
 fn won_cards<'a, T>(cards: T, original: &'a [Card]) -> Vec<&'a Card>
 where
-    T: IntoIterator<Item = &'a Card> + 'a
+    T: IntoIterator<Item = &'a Card> + 'a,
 {
-        cards.into_iter()
-            .map(|card| card.won_cards(original))
-            .flatten()
-            .collect()
+    cards
+        .into_iter()
+        .flat_map(|card| card.won_cards(original))
+        .collect()
 }
 
 fn part_two(cards: &[Card]) {
@@ -36,14 +34,12 @@ fn part_two(cards: &[Card]) {
 }
 
 fn main() -> Result<()> {
-    let file = OpenOptions::new()
-        .read(true)
-        .open("./input")?;
+    let file = OpenOptions::new().read(true).open("./input")?;
 
     let cards = BufReader::new(file)
         .lines()
         .enumerate()
-        .map(|(id, maybe_line)| Ok(Card::try_from((id, maybe_line?))?))
+        .map(|(id, maybe_line)| Card::try_from((id, maybe_line?)))
         .collect::<Result<Vec<_>>>()?;
 
     part_one(&cards);
