@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Schematic(Vec<Vec<char>>);
 
 impl Schematic {
@@ -177,62 +177,99 @@ impl Point {
     }
 }
 
-fn main() -> Result<()> {
-    let file = OpenOptions::new().read(true).open("./input")?;
-    let reader = BufReader::new(file);
-    let mut schematic: Schematic = reader.lines().collect::<Result<_, _>>()?;
+fn adjacent_number(schematic: &mut Schematic, point: Point) -> Option<u32> {
+    let value = match schematic.value_mut(point) {
+        Some(value) => value,
+        None => return None,
+    };
+    let mut num = match value.to_digit(10) {
+        Some(digit) => {
+            *value = '.';
+            digit
+        }
+        _ => return None,
+    };
+    let mut mul = 10;
+    let mut start = point;
+    let mut end = point;
+    while let Some(point) = start.left() {
+        let value = match schematic.value_mut(point) {
+            Some(value) => value,
+            None => break,
+        };
+        let digit = match value.to_digit(10) {
+            Some(digit) => {
+                *value = '.';
+                digit
+            }
+            None => break,
+        };
+        num += digit * mul;
+        mul *= 10;
+        start = point;
+    }
+    while let Some(point) = end.right() {
+        let value = match schematic.value_mut(point) {
+            Some(value) => value,
+            None => break,
+        };
+        let digit = match value.to_digit(10) {
+            Some(digit) => {
+                *value = '.';
+                digit
+            }
+            None => break,
+        };
+        num = num * 10 + digit;
+        end = point;
+    }
+    Some(num)
+}
+
+fn part_one(mut schematic: Schematic) -> Result<()> {
     let adjacent_points: Vec<_> = schematic
         .symbols()
         .flat_map(|symbol| symbol.adjacent())
         .collect();
     let sum: u32 = adjacent_points
         .into_iter()
-        .filter_map(|point| {
-            let value = schematic.value_mut(point).unwrap();
-            let mut num = match value.to_digit(10) {
-                Some(digit) => {
-                    *value = '.';
-                    digit
-                }
-                _ => return None,
-            };
-            let mut mul = 10;
-            let mut start = point;
-            let mut end = point;
-            while let Some(point) = start.left() {
-                let value = match schematic.value_mut(point) {
-                    Some(value) => value,
-                    None => break,
-                };
-                let digit = match value.to_digit(10) {
-                    Some(digit) => {
-                        *value = '.';
-                        digit
-                    }
-                    None => break,
-                };
-                num += digit * mul;
-                mul *= 10;
-                start = point;
-            }
-            while let Some(point) = end.right() {
-                let value = match schematic.value_mut(point) {
-                    Some(value) => value,
-                    None => break,
-                };
-                let digit = match value.to_digit(10) {
-                    Some(digit) => {
-                        *value = '.';
-                        digit
-                    }
-                    None => break,
-                };
-                num = num * 10 + digit;
-                end = point;
-            }
-            Some(num)
-        })
+        .filter_map(|point| adjacent_number(&mut schematic, point))
         .sum();
     println!("{sum}");
+    Ok(())
+}
+
+fn part_two(mut schematic: Schematic) -> Result<()> {
+    let gear_symbols: Vec<_> = schematic
+        .symbols()
+        .filter(|point| schematic.value(*point).unwrap() == '*')
+        .collect();
+
+    let sum: u32 = gear_symbols
+        .into_iter()
+        .filter_map(|symbol| {
+            let numbers: Vec<_> = symbol
+                .adjacent()
+                .filter_map(|point| adjacent_number(&mut schematic, point))
+                .collect();
+            if numbers.len() == 2 {
+                return Some(numbers.into_iter().product::<u32>());
+            }
+            None
+        })
+        .sum();
+
+    println!("{sum}");
+
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    let file = OpenOptions::new().read(true).open("./input")?;
+    let reader = BufReader::new(file);
+    let schematic: Schematic = reader.lines().collect::<Result<_, _>>()?;
+
+    part_one(schematic.clone())?;
+    part_two(schematic.clone())?;
     Ok(())
 }
