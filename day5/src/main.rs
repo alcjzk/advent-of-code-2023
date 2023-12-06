@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Error, Result};
 use itertools::Itertools;
+use rayon::prelude::*;
 use std::fs::OpenOptions;
 use std::{
     io::{BufRead, BufReader},
@@ -161,8 +162,8 @@ fn part_one(almanac: &Almanac) {
 fn part_two(almanac: &Almanac) {
     let location = almanac
         .seeds_as_ranges()
-        .into_iter()
-        .flat_map(|range| range.into_iter())
+        .into_par_iter()
+        .flat_map(|range| range.into_par_iter())
         .map(|seed| almanac.seed_to_location(seed))
         .min()
         .unwrap();
