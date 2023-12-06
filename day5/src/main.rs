@@ -1,14 +1,19 @@
-use std::{ops::Range, io::{BufReader, BufRead}};
+use anyhow::{anyhow, Error, Result};
+use itertools::Itertools;
 use std::fs::OpenOptions;
-use anyhow::{anyhow, Result, Error};
+use std::{
+    io::{BufRead, BufReader},
+    ops::Range,
+};
 
 #[derive(Debug)]
 struct Map(Vec<Mapping>);
 
 impl Map {
     fn map(&self, value: usize) -> usize {
-        self.0.iter()
-            .find_map(|mapping|mapping.map(value))
+        self.0
+            .iter()
+            .find_map(|mapping| mapping.map(value))
             .unwrap_or(value)
     }
 }
@@ -30,16 +35,19 @@ impl TryFrom<String> for Mapping {
 
     fn try_from(line: String) -> Result<Self> {
         let mut split = line.split_ascii_whitespace();
-        let destination_start = split.next()
+        let destination_start = split
+            .next()
             .ok_or(anyhow!("Missing value on line '{line}'"))?
             .parse::<usize>()?;
-        let source_start = split.next()
+        let source_start = split
+            .next()
             .ok_or(anyhow!("Missing value on line '{line}'"))?
             .parse::<usize>()?;
-        let length = split.next()
+        let length = split
+            .next()
             .ok_or(anyhow!("Missing value on line '{line}'"))?
             .parse::<usize>()?;
-       Ok(Mapping::new(source_start, destination_start, length))
+        Ok(Mapping::new(source_start, destination_start, length))
     }
 }
 
@@ -76,20 +84,21 @@ struct Almanac {
 impl Almanac {
     fn new(mut lines: impl Iterator<Item = String>) -> Result<Self> {
         fn _map_from(lines: impl Iterator<Item = String>) -> Result<Map> {
-            lines.map_while(|line|{
-                if line.is_empty() {
-                    return None;
-                }
-                Some(Mapping::try_from(line))
-            })
-            .collect::<Result<Map>>()
+            lines
+                .map_while(|line| {
+                    if line.is_empty() {
+                        return None;
+                    }
+                    Some(Mapping::try_from(line))
+                })
+                .collect::<Result<Map>>()
         }
-        let seed_line = lines.next()
-            .ok_or(anyhow!("Missing seed line"))?;
-        let seeds = seed_line.strip_prefix("seeds:")
+        let seed_line = lines.next().ok_or(anyhow!("Missing seed line"))?;
+        let seeds = seed_line
+            .strip_prefix("seeds:")
             .ok_or(anyhow!("Invalid seed line"))?
             .split_ascii_whitespace()
-            .map(|seed|seed.parse::<usize>())
+            .map(|seed| seed.parse::<usize>())
             .collect::<Result<Vec<usize>, _>>()?;
         let _ = lines.nth(1).ok_or(anyhow!("Unexpected EOF"))?;
         let seed_to_soil: Map = _map_from(&mut lines)?;
@@ -113,7 +122,7 @@ impl Almanac {
             water_to_light,
             light_to_temperature,
             temperature_to_humidity,
-            humidity_to_location
+            humidity_to_location,
         })
     }
     fn seed_to_location(&self, seed: usize) -> usize {
@@ -123,22 +132,52 @@ impl Almanac {
         let light = self.water_to_light.map(water);
         let temperature = self.light_to_temperature.map(light);
         let humidity = self.temperature_to_humidity.map(temperature);
-        let location = self.humidity_to_location.map(humidity);
-        location
+        self.humidity_to_location.map(humidity)
+    }
+    fn seeds_as_ranges(&self) -> Vec<Range<usize>> {
+        self.seeds
+            .iter()
+            .copied()
+            .tuples::<(usize, usize)>()
+            .map(|(start, length)| Range {
+                start,
+                end: start + length,
+            })
+            .collect()
     }
 }
 
+fn part_one(almanac: &Almanac) {
+    let location = almanac
+        .seeds
+        .iter()
+        .map(|seed| almanac.seed_to_location(*seed))
+        .min()
+        .unwrap();
+
+    println!("{location}");
+}
+
+fn part_two(almanac: &Almanac) {
+    let location = almanac
+        .seeds_as_ranges()
+        .into_iter()
+        .flat_map(|range| range.into_iter())
+        .map(|seed| almanac.seed_to_location(seed))
+        .min()
+        .unwrap();
+
+    println!("{location}");
+}
 fn main() -> Result<()> {
     let file = OpenOptions::new().read(true).open("./input")?;
-
-    let lines = BufReader::new(file).lines().collect::<Result<Vec<String>, _>>()?;
+    let lines = BufReader::new(file)
+        .lines()
+        .collect::<Result<Vec<String>, _>>()?;
     let almanac = Almanac::new(lines.into_iter())?;
 
-    let location = almanac.seeds.iter()
-        .map(|seed|almanac.seed_to_location(*seed))
-        .min().unwrap();
-    
-    println!("{location}");
+    part_one(&almanac);
+    part_two(&almanac);
 
     Ok(())
 }
