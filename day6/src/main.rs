@@ -1,4 +1,3 @@
-#![allow(unused)]
 use anyhow::{anyhow, Result};
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Seek};
@@ -11,19 +10,18 @@ struct Race {
 
 impl Race {
     fn record_beat_ways_count(&self) -> usize {
-        let hold_time = self.time / 2;
         (self.hold_time_lowest()..=self.hold_time_highest()).count()
     }
     fn hold_time_lowest(&self) -> usize {
         let mut hold_time = 0;
-        while (distance(hold_time, self.time) <= self.record_distance) {
+        while distance(hold_time, self.time) <= self.record_distance {
             hold_time += 1;
         }
         hold_time
     }
     fn hold_time_highest(&self) -> usize {
         let mut hold_time = self.time;
-        while (distance(hold_time, self.time) <= self.record_distance) {
+        while distance(hold_time, self.time) <= self.record_distance {
             hold_time -= 1;
         }
         hold_time
@@ -74,7 +72,7 @@ fn part_one<R: BufRead>(reader: &mut R) -> Result<()> {
 }
 
 fn part_two<R: BufRead + Seek>(reader: &mut R) -> Result<()> {
-    reader.rewind();
+    reader.rewind()?;
     let mut lines = reader.lines();
 
     let time: usize = lines
