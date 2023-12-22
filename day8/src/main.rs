@@ -53,8 +53,11 @@ impl TryFrom<&str> for Node {
 struct Map(Vec<Node>);
 
 impl Map {
-    fn find(&self, key: Element) -> Option<&Node> {
-        self.0.iter().find(|node|node.key == key)
+    fn find<P>(&self, predicate: P) -> Option<&Node>
+    where
+        P: FnMut(&&Node) -> bool,
+    {
+        self.0.iter().find(predicate)
     }
 }
 
@@ -65,14 +68,14 @@ impl FromIterator<Node> for Map {
 }
 
 fn part_one(instructions: &str, map: &Map) -> Result<String> {
-    let mut current = map.find(Element(['A','A','A'])).ok_or(anyhow!("Missing starting point in map"))?;
+    let mut current = map.find(|node|node.key == Element(['A','A','A'])).ok_or(anyhow!("Missing starting point in map"))?;
     let mut steps = 0;
         
     loop {
         let element = instructions.chars().find_map(|c|{
             current = match c {
-                'R' => map.find(current.right).unwrap(),
-                'L' => map.find(current.left).unwrap(),
+                'R' => map.find(|node|node.key == current.right).unwrap(),
+                'L' => map.find(|node|node.key == current.left).unwrap(),
                 _ => panic!("Unexpected instruction '{c}'"),
             };
             steps += 1;
@@ -86,6 +89,11 @@ fn part_one(instructions: &str, map: &Map) -> Result<String> {
         }
     }
     Ok(steps.to_string())
+}
+
+fn part_two(instructions: &str, map: &Map) -> Result<String> {
+    // find all nodes ending with A
+    todo!()
 }
 
 fn main() -> Result<()> {
@@ -105,8 +113,10 @@ fn main() -> Result<()> {
     .collect::<Result<_>>()?;
 
     let part_one_answer = part_one(&instructions, &map)?;
+    let part_two_answer = part_two(&instructions, &map)?;
 
     println!("part one: {part_one_answer}");
+    println!("part two: {part_two_answer}");
 
     Ok(())
 }
