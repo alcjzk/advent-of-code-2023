@@ -1,4 +1,4 @@
-use anyhow::{Result, Error, anyhow, bail};
+use anyhow::{Result, Error, anyhow};
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader};
 
@@ -56,18 +56,36 @@ impl Map {
     fn find(&self, key: Element) -> Option<&Node> {
         self.0.iter().find(|node|node.key == key)
     }
-    fn last(&self) -> Element {
-        self.0.last().unwrap().key
-    }
-    fn first(&self) -> &Node {
-        self.0.first().unwrap()
-    }
 }
 
 impl FromIterator<Node> for Map {
     fn from_iter<T: IntoIterator<Item = Node>>(iter: T) -> Self {
         Self(iter.into_iter().collect())
     }
+}
+
+fn part_one(instructions: &str, map: &Map) -> Result<String> {
+    let mut current = map.find(Element(['A','A','A'])).ok_or(anyhow!("Missing starting point in map"))?;
+    let mut steps = 0;
+        
+    loop {
+        let element = instructions.chars().find_map(|c|{
+            current = match c {
+                'R' => map.find(current.right).unwrap(),
+                'L' => map.find(current.left).unwrap(),
+                _ => panic!("Unexpected instruction '{c}'"),
+            };
+            steps += 1;
+            if current.key == Element(['Z','Z','Z']) {
+                return Some(current.key);
+            }
+            None
+        });
+        if element.is_some() {
+            break;
+        }
+    }
+    Ok(steps.to_string())
 }
 
 fn main() -> Result<()> {
@@ -86,51 +104,9 @@ fn main() -> Result<()> {
     })
     .collect::<Result<_>>()?;
 
-    let mut current = map.find(Element(['A','A','A'])).unwrap();
-    let mut steps = 0;
-    if current.key == Element(['Z','Z','Z']) {
-        panic!()
-    }
-    // println!("a {}", instructions.len());
-    // while current.key != Element(['D','C','R'])
-    // {
-    //     instructions.chars()
-    //         .for_each(|ins|{
-    //             println!("{current:?} -> {ins}");
-    //             current = match ins {
-    //                 'R' => map.find(current.right).unwrap(),
-    //                 'L' => map.find(current.left).unwrap(),
-    //                 _ => panic!("Unexpected instruction '{ins}'"),
-    //             };
-    //             steps += 1;
-    //         });
-    //     println!("{steps}");
-    // }
-    
-    loop {
-        // print!(": {steps}");
-        let element = instructions.chars().find_map(|c|{
-            println!("{current:?} -> {c}");
-            current = match c {
-                'R' => map.find(current.right).unwrap(),
-                'L' => map.find(current.left).unwrap(),
-                _ => panic!("Unexpected instruction '{c}'"),
-            };
-            steps += 1;
-            if current.key == Element(['Z','Z','Z']) {
-                println!("{current:?} {steps}");
-                return Some(current.key);
-            }
-            None
-        });
-        if element.is_some() {
-            break;
-        }
-    }
+    let part_one_answer = part_one(&instructions, &map)?;
 
-    // LLR
-
-    println!("a{steps}");
+    println!("part one: {part_one_answer}");
 
     Ok(())
 }
