@@ -50,17 +50,6 @@ impl Universe {
         self.inner[position.y][position.x]
     }
 
-    fn is_all_spaces(&self, column_index: usize) -> bool {
-        let height = self.inner.len();
-
-        for row_index in 0..height {
-            if !self.inner[row_index][column_index].is_space() {
-                return false;
-            }
-        }
-        true
-    }
-
     pub fn distances(&self, void_size: usize) -> impl Iterator<Item = usize> + '_ {
         self.galaxies()
             .combinations(2)
@@ -73,22 +62,28 @@ impl Universe {
             .filter(|row| row.iter().all(|cell| *cell == Cell::Space))
             .for_each(|row| row.iter_mut().for_each(|cell| *cell = Cell::VerticalVoid));
 
-        // FIXME: Better way to do this?
-        let mut column_index = 0;
-        loop {
-            if column_index >= self.inner[0].len() {
-                break;
-            }
-            if self.is_all_spaces(column_index) {
-                for row in self.inner.iter_mut() {
-                    row[column_index] = match row[column_index] {
+        for column_idx in 0..self.inner[0].len() {
+            if self.column_cells(column_idx).all(Cell::is_space) {
+                self.column_cells_mut(column_idx).for_each(|cell| {
+                    *cell = match cell {
                         Cell::VerticalVoid => Cell::Void,
                         _ => Cell::HorizontalVoid,
-                    };
-                }
+                    }
+                });
             }
-            column_index += 1;
         }
+    }
+
+    fn column_cells_mut(&mut self, index: usize) -> impl Iterator<Item = &mut Cell> + '_ {
+        self.inner
+            .iter_mut()
+            .map(move |row| row.get_mut(index).unwrap())
+    }
+
+    fn column_cells(&self, index: usize) -> impl Iterator<Item = Cell> + '_ {
+        self.inner
+            .iter()
+            .map(move |row| row.get(index).copied().unwrap())
     }
 
     fn galaxies(&self) -> impl Iterator<Item = Position> + '_ {
