@@ -1,6 +1,9 @@
 use anyhow::{bail, Error, Result};
+use itertools::Itertools;
 use std::fmt::{self, Write};
 use std::io::{BufRead, BufReader, Read};
+
+use Cell::*;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Universe {
@@ -19,32 +22,56 @@ impl Universe {
             })
             .collect::<Result<_>>()?;
 
-        Ok(Self { inner })
+        let mut universe = Self { inner };
+
+        universe.expand();
+
+        Ok(universe)
+    }
+
+    fn distance(&self, a: Position, b: Position, void_size: usize) -> usize {
+        let mut distance = 0;
+        for x in a.x.min(b.x)..a.x.max(b.x) {
+            match self.get(Position { x, y: a.y }).is_horizontal_void() {
+                true => distance += void_size,
+                false => distance += 1,
+            }
+        }
+        for y in a.y.min(b.y)..a.y.max(b.y) {
+            match self.get(Position { x: a.x, y }).is_vertical_void() {
+                true => distance += void_size,
+                false => distance += 1,
+            }
+        }
+        distance
+    }
+
+    fn get(&self, position: Position) -> Cell {
+        self.inner[position.y][position.x]
     }
 
     fn is_all_spaces(&self, column_index: usize) -> bool {
         let height = self.inner.len();
 
         for row_index in 0..height {
-            if self.inner[row_index][column_index] != Cell::Space {
+            if !self.inner[row_index][column_index].is_space() {
                 return false;
             }
         }
         true
     }
 
-    pub fn expand(&mut self) {
-        self.inner =
-            self.inner
-                .iter()
-                .fold(Vec::with_capacity(self.inner.len()), |mut rows, row| {
-                    if row.iter().copied().all(|cell| cell == Cell::Space) {
-                        rows.extend(std::iter::repeat(row.clone()).take(2));
-                    } else {
-                        rows.push(row.clone());
-                    }
-                    rows
-                });
+    pub fn distances(&self, void_size: usize) -> impl Iterator<Item = usize> + '_ {
+        self.galaxies()
+            .combinations(2)
+            .map(move |pair| self.distance(pair[0], pair[1], void_size))
+    }
+
+    fn expand(&mut self) {
+        self.inner
+            .iter_mut()
+            .filter(|row| row.iter().all(|cell| *cell == Cell::Space))
+            .for_each(|row| row.iter_mut().for_each(|cell| *cell = Cell::VerticalVoid));
 
         // FIXME: Better way to do this?
         let mut column_index = 0;
@@ -54,15 +81,17 @@ impl Universe {
             }
             if self.is_all_spaces(column_index) {
                 for row in self.inner.iter_mut() {
-                    row.insert(column_index, Cell::Space);
+                    row[column_index] = match row[column_index] {
+                        Cell::VerticalVoid => Cell::Void,
+                        _ => Cell::HorizontalVoid,
+                    };
                 }
-                column_index += 1;
             }
             column_index += 1;
         }
     }
 
-    pub fn galaxies(&self) -> impl Iterator<Item = Position> + '_ {
+    fn galaxies(&self) -> impl Iterator<Item = Position> + '_ {
         self.inner.iter().enumerate().flat_map(|(y, row)| {
             row.iter()
                 .copied()
@@ -88,29 +117,36 @@ impl fmt::Display for Universe {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Position {
+struct Position {
     x: usize,
     y: usize,
-}
-
-impl Position {
-    pub fn distance_to(self, other: Position) -> usize {
-        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Cell {
     Space,
     Galaxy,
+    HorizontalVoid,
+    VerticalVoid,
+    Void,
+}
+
+impl Cell {
+    fn is_vertical_void(self) -> bool {
+        self == VerticalVoid || self == Void
+    }
+    fn is_horizontal_void(self) -> bool {
+        self == HorizontalVoid || self == Void
+    }
+    fn is_space(self) -> bool {
+        !matches!(self, Cell::Galaxy)
+    }
 }
 
 impl TryFrom<char> for Cell {
     type Error = Error;
 
     fn try_from(value: char) -> Result<Self> {
-        use Cell::*;
-
         Ok(match value {
             '.' => Space,
             '#' => Galaxy,
@@ -121,11 +157,10 @@ impl TryFrom<char> for Cell {
 
 impl From<Cell> for char {
     fn from(cell: Cell) -> Self {
-        use Cell::*;
-
         match cell {
             Space => '.',
             Galaxy => '#',
+            _ => '+',
         }
     }
 }
@@ -142,14 +177,21 @@ mod tests {
     use std::fs::OpenOptions;
 
     #[test]
-    fn universe_expand() -> Result<()> {
+    fn distances() -> Result<()> {
         let mut universe = Universe::from_reader(OpenOptions::new().read(true).open("test")?)?;
-        let universe_expanded =
-            Universe::from_reader(OpenOptions::new().read(true).open("test_expanded")?)?;
-
         universe.expand();
 
-        assert_eq!(universe, universe_expanded);
+        assert_eq!(
+            universe.distance(Position { x: 3, y: 0 }, Position { x: 7, y: 8 }, 2),
+            15
+        );
+        assert_eq!(
+            universe.distance(Position { x: 0, y: 2 }, Position { x: 9, y: 6 }, 2),
+            17
+        );
+
+        assert_eq!(universe.distances(10).sum::<usize>(), 1030);
+        assert_eq!(universe.distances(100).sum::<usize>(), 8410);
 
         Ok(())
     }
