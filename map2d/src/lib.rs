@@ -81,6 +81,14 @@ pub struct Row<T> {
     inner: Box<[T]>,
 }
 
+impl<T: Default + Copy> Row<T> {
+    fn new(width: usize) -> Self {
+        Self {
+            inner: vec![T::default();width].into_boxed_slice()
+        }
+    }
+}
+
 impl<T> Row<T> {
     pub fn len(&self) -> usize {
         self.inner.len()
@@ -147,6 +155,17 @@ pub struct Map2D<T> {
     inner: Box<[Row<T>]>,
     height: usize,
     width: usize,
+}
+
+impl<T: Default + Copy> Map2D<T> {
+    pub fn new(height: usize, width: usize) -> Self {
+        let inner = vec![Row::new(width); height].into_boxed_slice();
+        Self {
+            inner,
+            height,
+            width,
+        }
+    }
 }
 
 impl<T> Map2D<T> {
