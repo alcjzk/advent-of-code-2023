@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use macros::char_enum;
 use map2d::Map2D;
 use std::{fmt::Write, fs::OpenOptions};
@@ -127,8 +127,9 @@ impl std::ops::DerefMut for Value {
     }
 }
 
-fn run(grid: &Grid, mut beams: Vec<Beam>) -> Result<usize> {
+fn run(grid: &Grid, initial_beam: Beam) -> Result<usize> {
     let mut light_map: Map2D<Value> = Map2D::new(grid.height(), grid.width());
+    let mut beams = vec![initial_beam];
 
     for _ in 0..ITERATIONS_MAX {
         let mut new_beams = vec![];
@@ -169,14 +170,60 @@ fn run(grid: &Grid, mut beams: Vec<Beam>) -> Result<usize> {
 }
 
 fn part_one(grid: &Grid) -> Result<usize> {
-    let beams = vec![Beam {
+    let initial_beam = Beam {
         x: 0,
         y: 0,
         direction: Right,
-    }];
+    };
 
-    let count = run(&grid, beams)?;
+    let count = run(grid, initial_beam)?;
     Ok(count)
+}
+
+fn part_two(grid: &Grid) -> Result<usize> {
+    let mut initial_beams = vec![];
+
+    let x_max = grid.width() - 1;
+    let y_max = grid.height() - 1;
+
+    initial_beams.extend((0..grid.width()).flat_map(|x| {
+        [
+            Beam {
+                x,
+                y: 0,
+                direction: Down,
+            },
+            Beam {
+                x,
+                y: y_max,
+                direction: Up,
+            },
+        ]
+    }));
+
+    initial_beams.extend((0..grid.height()).flat_map(|y| {
+        [
+            Beam {
+                x: 0,
+                y,
+                direction: Right,
+            },
+            Beam {
+                x: x_max,
+                y,
+                direction: Left,
+            },
+        ]
+    }));
+
+    let values = initial_beams.into_iter().map(|beam| run(grid, beam));
+    let values: Vec<usize> = Result::from_iter(values)?;
+    let max = values
+        .into_iter()
+        .max()
+        .ok_or(anyhow!("no max value found"))?;
+
+    Ok(max)
 }
 
 fn main() -> Result<()> {
@@ -184,6 +231,7 @@ fn main() -> Result<()> {
     let grid = Grid::from_reader(file)?;
 
     println!("part one answer: {}", part_one(&grid)?);
+    println!("part two answer: {}", part_two(&grid)?);
 
     Ok(())
 }
