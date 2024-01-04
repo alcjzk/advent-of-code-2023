@@ -72,6 +72,7 @@ impl From<Direction> for usize {
 trait LightMap {
     fn is_set(&self, x: usize, y: usize, direction: Direction) -> bool;
     fn set(&mut self, x: usize, y: usize, direction: Direction);
+    fn energized_count(&self) -> usize;
 }
 
 impl LightMap for Map2D<Value> {
@@ -80,6 +81,14 @@ impl LightMap for Map2D<Value> {
     }
     fn set(&mut self, x: usize, y: usize, direction: Direction) {
         self[y][x][usize::from(direction)] = true;
+    }
+    fn energized_count(&self) -> usize {
+        self.rows().fold(0, |count, row| {
+            row.iter()
+                .filter(|values| values.iter().copied().any(std::convert::identity))
+                .count()
+                + count
+        })
     }
 }
 
@@ -111,24 +120,15 @@ impl std::ops::Deref for Value {
         &self.0
     }
 }
+
 impl std::ops::DerefMut for Value {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-fn main() -> Result<()> {
-    let file = OpenOptions::new().read(true).open("input")?;
-
-    let grid = Grid::from_reader(file)?;
-
+fn run(grid: &Grid, mut beams: Vec<Beam>) -> Result<usize> {
     let mut light_map: Map2D<Value> = Map2D::new(grid.height(), grid.width());
-
-    let mut beams = vec![Beam {
-        x: 0,
-        y: 0,
-        direction: Right,
-    }];
 
     for _ in 0..ITERATIONS_MAX {
         let mut new_beams = vec![];
@@ -164,17 +164,26 @@ fn main() -> Result<()> {
         }
     }
 
-    let mut count = 0;
+    let count = light_map.energized_count();
+    Ok(count)
+}
 
-    for row in light_map.rows() {
-        for light_values in row {
-            if light_values.iter().copied().any(std::convert::identity) {
-                count += 1;
-            }
-        }
-    }
+fn part_one(grid: &Grid) -> Result<usize> {
+    let beams = vec![Beam {
+        x: 0,
+        y: 0,
+        direction: Right,
+    }];
 
-    println!("{count}");
+    let count = run(&grid, beams)?;
+    Ok(count)
+}
+
+fn main() -> Result<()> {
+    let file = OpenOptions::new().read(true).open("input")?;
+    let grid = Grid::from_reader(file)?;
+
+    println!("part one answer: {}", part_one(&grid)?);
 
     Ok(())
 }
