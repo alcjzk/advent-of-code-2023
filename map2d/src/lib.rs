@@ -2,7 +2,7 @@ use anyhow::{Result, Error, anyhow, bail};
 use std::io::{Read, BufRead, BufReader};
 use std::fmt::{self, Write, Display};
 use std::slice::Iter;
-use std::ops::{Deref, Range};
+use std::ops::{Deref, DerefMut, Range};
 
 #[derive(Debug)]
 pub struct Columns<'a, T> {
@@ -98,6 +98,12 @@ impl<T> Deref for Row<T> {
     }
 }
 
+impl<T> DerefMut for Row<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
+    }
+}
+
 impl<T: Display> Display for Row<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for cell in self {
@@ -175,6 +181,12 @@ impl<T> Deref for Map2D<T> {
 
     fn deref(&self) -> &Self::Target {
         &self.inner
+    }
+}
+
+impl<T> DerefMut for Map2D<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.inner
     }
 }
 
