@@ -179,7 +179,7 @@ impl Patterns {
                 .by_ref()
                 .map_while(|maybe_line| {
                     let line = maybe_line.ok().filter(|line| !line.is_empty())?;
-                    Some(Result::from_iter(line.chars().map(Terrain::try_from)).ok()?)
+                    Result::from_iter(line.chars().map(Terrain::try_from)).ok()
                 })
                 .collect();
 

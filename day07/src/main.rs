@@ -305,7 +305,7 @@ fn main() -> Result<()> {
 
     println!("{}", game.winnings());
 
-    // SAFETY: Because `PartOne` and `PartTwo` are zero-sized, and only used as implementation 
+    // SAFETY: Because `PartOne` and `PartTwo` are zero-sized, and only used as implementation
     // markers, this transmute should not cause issues.
     let game: Game<PartTwo> = unsafe { std::mem::transmute(game) };
 

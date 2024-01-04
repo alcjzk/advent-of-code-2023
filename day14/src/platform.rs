@@ -37,7 +37,8 @@ impl Platform {
 
     pub fn tilt_north(self) -> Self {
         fn _place_rocks(platform: &mut Platform, x: usize, offset: usize, count: usize) {
-            platform.iter_mut()
+            platform
+                .iter_mut()
                 .skip(offset)
                 .take(count)
                 .for_each(|row| row[x] = Node::RoundedRock);
@@ -72,7 +73,8 @@ impl Platform {
 
     pub fn tilt_south(self) -> Self {
         fn _place_rocks(platform: &mut Platform, x: usize, offset: usize, count: usize) {
-            platform.iter_mut()
+            platform
+                .iter_mut()
                 .rev()
                 .skip(offset)
                 .take(count)

@@ -89,7 +89,10 @@ impl Bucket {
         if let Some(entry) = self.inner.iter_mut().find(|entry| entry.key == key) {
             entry.value = value;
         } else {
-            self.inner.push(Entry { key: key.into(), value });
+            self.inner.push(Entry {
+                key: key.into(),
+                value,
+            });
         }
     }
     fn remove<T: AsRef<[u8]>>(&mut self, key: T) {

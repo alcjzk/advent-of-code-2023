@@ -1,8 +1,8 @@
-use anyhow::{Result, Error, anyhow, bail};
-use std::io::{Read, BufRead, BufReader};
-use std::fmt::{self, Write, Display};
-use std::slice::Iter;
+use anyhow::{anyhow, bail, Error, Result};
+use std::fmt::{self, Display, Write};
+use std::io::{BufRead, BufReader, Read};
 use std::ops::{Deref, DerefMut, Range};
+use std::slice::Iter;
 
 #[derive(Debug)]
 pub struct Columns<'a, T> {
@@ -12,10 +12,11 @@ pub struct Columns<'a, T> {
 
 impl<'a, T> Columns<'a, T> {
     fn new(map: &'a Map2D<T>) -> Self {
-        let x = Range { start: 0, end: map.width };
-        Self {
-            map, x,
-        }
+        let x = Range {
+            start: 0,
+            end: map.width,
+        };
+        Self { map, x }
     }
 }
 
@@ -48,11 +49,12 @@ pub struct Column<'a, T> {
 
 impl<'a, T> Column<'a, T> {
     fn new(map: &'a Map2D<T>, x: usize) -> Self {
-        let y = Range { start: 0, end: map.height };
+        let y = Range {
+            start: 0,
+            end: map.height,
+        };
 
-        Self {
-            map, x, y,
-        }
+        Self { map, x, y }
     }
 }
 
@@ -84,7 +86,7 @@ pub struct Row<T> {
 impl<T: Default + Copy> Row<T> {
     fn new(width: usize) -> Self {
         Self {
-            inner: vec![T::default();width].into_boxed_slice()
+            inner: vec![T::default(); width].into_boxed_slice(),
         }
     }
 }
@@ -92,6 +94,9 @@ impl<T: Default + Copy> Row<T> {
 impl<T> Row<T> {
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
     }
     pub fn iter(&self) -> Iter<'_, T> {
         self.inner.iter()
@@ -139,10 +144,7 @@ where
     fn try_from(line: &str) -> Result<Self> {
         let tiles = line
             .chars()
-            .map(|character| -> Result<T> {
-                T::try_from(character)
-                    .map_err(|error| error.into())
-            });
+            .map(|character| -> Result<T> { T::try_from(character).map_err(|error| error.into()) });
 
         let inner = Result::from_iter(tiles)?;
 
@@ -229,7 +231,10 @@ where
                 let row = Row::try_from(maybe_line?.as_str())?;
 
                 if row.len() != width {
-                    bail!("incorrect row width '{}' on line {n}, expected '{width}'", row.len());
+                    bail!(
+                        "incorrect row width '{}' on line {n}, expected '{width}'",
+                        row.len()
+                    );
                 }
 
                 Ok(row)
@@ -237,7 +242,7 @@ where
             .collect::<Result<_>>()?;
 
         let height = inner.len();
-        
+
         Ok(Self {
             inner,
             height,
