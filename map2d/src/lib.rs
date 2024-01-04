@@ -162,6 +162,12 @@ impl<T> Map2D<T> {
     pub fn width(&self) -> usize {
         self.width
     }
+    pub fn get(&self, x: usize, y: usize) -> Option<&T> {
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+        Some(&self[y][x])
+    }
 }
 
 impl<T> Deref for Map2D<T> {
