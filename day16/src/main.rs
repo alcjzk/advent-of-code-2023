@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use macros::char_enum;
 use map2d::Map2D;
 use std::{fmt::Write, fs::OpenOptions};
@@ -216,12 +216,12 @@ fn part_two(grid: &Grid) -> Result<usize> {
         ]
     }));
 
-    let values = initial_beams.into_iter().map(|beam| run(grid, beam));
-    let values: Vec<usize> = Result::from_iter(values)?;
-    let max = values
-        .into_iter()
-        .max()
-        .ok_or(anyhow!("no max value found"))?;
+    let mut max = 0;
+
+    for beam in initial_beams {
+        let value = run(grid, beam)?;
+        max = value.max(max);
+    }
 
     Ok(max)
 }
